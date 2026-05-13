@@ -28,4 +28,5 @@ htmlcov/
 .tox/
 .venv
 models/
+*.gguf
 *.log
