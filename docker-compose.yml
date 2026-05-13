@@ -44,10 +44,8 @@ services:
       postgres:
         condition: service_healthy
     volumes:
-      - model_cache:/app/models
-    command: >
-      sh -c "python -c 'from app.ml_service import download_model; download_model()' &&
-             uvicorn app.main:app --host 0.0.0.0 --port 8000"
+      - ./models:/app/models:ro
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
 
 volumes:
   postgres_data:

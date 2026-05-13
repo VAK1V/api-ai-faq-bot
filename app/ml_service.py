@@ -1,8 +1,7 @@
-"""ML service for loading and running the GGUF model."""
+"""ML service for loading and running the local GGUF model."""
 import os
 import time
 from typing import Optional
-from huggingface_hub import hf_hub_download
 from llama_cpp import Llama
 from app.config import get_settings
 from app.logger import setup_logger
@@ -15,14 +14,26 @@ _llm: Optional[Llama] = None
 
 
 def get_model_path() -> str:
-    """Get or download the GGUF model file."""
-    cache_dir = "/app/models"
-    os.makedirs(cache_dir, exist_ok=True)
+    """Get path to local GGUF model file."""
+    # Priority 1: models/ folder next to project (mounted in Docker)
+    local_path = os.path.join("/app/models", settings.model_file)
+    if os.path.exists(local_path):
+        logger.info(f"Using local model at {local_path}")
+        return local_path
 
-    model_path = os.path.join(cache_dir, settings.model_file)
+    # Priority 2: check if model is in app directory
+    app_path = os.path.join(os.path.dirname(__file__), "..", "models", settings.model_file)
+    app_path = os.path.abspath(app_path)
+    if os.path.exists(app_path):
+        logger.info(f"Using local model at {app_path}")
+        return app_path
 
-    if not os.path.exists(model_path):
-        logger.info(f"Downloading model {settings.model_repo}/{settings.model_file}...")
+    # Priority 3: try to download from Hugging Face (fallback)
+    logger.warning("Local model not found, attempting download from Hugging Face...")
+    try:
+        from huggingface_hub import hf_hub_download
+        cache_dir = "/app/models"
+        os.makedirs(cache_dir, exist_ok=True)
         model_path = hf_hub_download(
             repo_id=settings.model_repo,
             filename=settings.model_file,
@@ -30,15 +41,13 @@ def get_model_path() -> str:
             local_dir_use_symlinks=False,
         )
         logger.info(f"Model downloaded to {model_path}")
-    else:
-        logger.info(f"Using cached model at {model_path}")
-
-    return model_path
-
-
-def download_model() -> None:
-    """Download model during build/startup."""
-    get_model_path()
+        return model_path
+    except Exception as e:
+        logger.error(f"Failed to download model: {e}")
+        raise FileNotFoundError(
+            f"Model file '{settings.model_file}' not found. "
+            f"Place it in the 'models/' folder or check MODEL_FILE in .env"
+        )
 
 
 def load_model() -> Llama:
@@ -50,7 +59,8 @@ def load_model() -> Llama:
 
     model_path = get_model_path()
 
-    logger.info(f"Loading model {settings.model_file} with {settings.n_threads} threads...")
+    logger.info(f"Loading model from {model_path}")
+    logger.info(f"Threads: {settings.n_threads}, Context: {settings.n_ctx}, GPU layers: 0 (CPU)")
     start_time = time.time()
 
     try:
@@ -96,7 +106,7 @@ def generate_answer(question: str) -> tuple[str, float]:
             messages=messages,
             max_tokens=settings.max_tokens,
             temperature=settings.temperature,
-            stop=["<|im_end|>", "<|endoftext|>"],
+            stop=["</s>", "<|endoftext|>", "user:", "assistant:"],
         )
 
         processing_time = (time.time() - start_time) * 1000
