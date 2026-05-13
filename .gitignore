@@ -27,6 +27,7 @@ wheels/
 htmlcov/
 .tox/
 .venv
+.idea
 models/
 *.gguf
 *.log
