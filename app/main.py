@@ -1,12 +1,14 @@
 """Main FastAPI application."""
 from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 from app.db import init_db
 from app.routes import health, analyze, history
 from app.ml_service import load_model
 from app.logger import setup_logger
+import os
 
 logger = setup_logger(__name__)
 
@@ -18,13 +20,11 @@ async def lifespan(app: FastAPI):
     logger.info("AI FAQ Bot starting up...")
     logger.info("=" * 50)
 
-    # Initialize database
     try:
         init_db()
     except Exception as e:
         logger.error(f"Database initialization failed: {e}")
 
-    # Load model
     try:
         load_model()
     except Exception as e:
@@ -62,18 +62,35 @@ async def global_exception_handler(request: Request, exc: Exception):
     )
 
 
-# Include routers
+# Include API routers
 app.include_router(health.router, tags=["Health"])
 app.include_router(analyze.router, prefix="/api/v1", tags=["Analysis"])
 app.include_router(history.router, prefix="/api/v1", tags=["History"])
 
+# Serve frontend static files
+frontend_path = os.path.join(os.path.dirname(__file__), "..", "frontend")
+if os.path.exists(frontend_path):
+    app.mount("/static", StaticFiles(directory=frontend_path), name="static")
+
 
 @app.get("/")
 async def root():
-    """Root endpoint with API info."""
+    """Serve the chat frontend."""
+    index_path = os.path.join(frontend_path, "index.html")
+    if os.path.exists(index_path):
+        return FileResponse(index_path)
     return {
         "name": "AI FAQ Bot API",
         "version": "1.0.0",
         "docs": "/docs",
         "health": "/health",
     }
+
+
+@app.get("/chat")
+async def chat_page():
+    """Redirect to main chat page."""
+    index_path = os.path.join(frontend_path, "index.html")
+    if os.path.exists(index_path):
+        return FileResponse(index_path)
+    return {"detail": "Frontend not found. Run with frontend folder."}

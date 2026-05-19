@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Алина AI — Чат с нейросетью</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app">
+        <!-- Sidebar — История чатов -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h1> Алина AI </h1>
+                <p>T-lite-it-2.1-GGUF</p>
+            </div>
+
+            <button class="new-chat-btn" onclick="startNewChat()">
+                <span>+</span> Новый чат
+            </button>
+
+            <div class="history-section">
+                <h3>История запросов</h3>
+                <div id="history-list" class="history-list">
+                    <div class="loading">Загрузка...</div>
+                </div>
+            </div>
+
+            <div class="sidebar-footer">
+                <div class="status" id="status">
+                    <span class="status-dot"></span>
+                    <span class="status-text">Проверка...</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Chat Area -->
+        <main class="chat-container">
+            <div class="chat-header">
+                <h2 id="chat-title">Новый чат</h2>
+                <div class="model-info">
+                    <span id="model-name">—</span>
+                </div>
+            </div>
+
+            <div id="messages" class="messages">
+                <div class="welcome-message">
+                    <div class="welcome-icon"></div>
+                    <h2>Привет! Я AI FAQ Bot</h2>
+                    <p>Задай мне любой вопрос — я постараюсь ответить.</p>
+                    <div class="suggestions">
+                        <button onclick="sendSuggestion(this)">Что такое Docker?</button>
+                        <button onclick="sendSuggestion(this)">Как работает FastAPI?</button>
+                        <button onclick="sendSuggestion(this)">Объясни REST API</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="input-area">
+                <div class="input-wrapper">
+                    <textarea 
+                        id="message-input" 
+                        placeholder="Введите ваш вопрос..."
+                        rows="1"
+                        onkeydown="handleKeyDown(event)"
+                    ></textarea>
+                    <button id="send-btn" onclick="sendMessage()" disabled>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="22" y1="2" x2="11" y2="13"></line>
+                            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                        </svg>
+                    </button>
+                </div>
+                <div class="input-hint">
+                    <span>Enter — отправить, Shift+Enter — новая строка</span>
+                    <span id="char-count">0/500</span>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Toast notifications -->
+    <div id="toast-container"></div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>
